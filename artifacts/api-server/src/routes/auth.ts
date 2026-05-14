@@ -57,14 +57,20 @@ router.post("/auth/login", async (req, res) => {
       res.status(401).json({ error: "Invalid email or password" });
       return;
     }
-    req.session!.userId = user.id;
-    res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
-    });
+    req.session.userId = user.id;
+   req.session.save((err) => {
+     if (err) {
+       req.log.error({ err }, "Failed to persist session");
+       res.status(500).json({ error: "Session save failed" });
+       return;
+     }
+     res.json({
+       id: user.id,
+       email: user.email,
+       name: user.name,
+       role: user.role,
+     });
+   });
   } catch (err) {
     req.log.error({ err }, "Error during login");
     res.status(500).json({ error: "Internal server error" });
@@ -101,10 +107,20 @@ router.post("/auth/signup", async (req, res) => {
     const [user] = await db.insert(usersTable).values({
       email, name, passwordHash, role: "consultant",
     }).returning();
-    req.session!.userId = user.id;
-    res.status(201).json({
-      id: user.id, email: user.email, name: user.name, role: user.role, avatarUrl: user.avatarUrl,
-    });
+    req.session.userId = user.id;
+   req.session.save((err) => {
+     if (err) {
+       req.log.error({ err }, "Failed to persist session");
+       res.status(500).json({ error: "Session save failed" });
+       return;
+     }
+     res.json({
+       id: user.id,
+       email: user.email,
+       name: user.name,
+       role: user.role,
+     });
+   });
   } catch (err) {
     req.log.error({ err }, "Error during signup");
     res.status(500).json({ error: "Internal server error" });

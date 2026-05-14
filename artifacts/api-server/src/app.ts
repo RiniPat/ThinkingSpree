@@ -41,23 +41,25 @@ app.use(express.urlencoded({ extended: true }));
 // Render's free tier puts the web service to sleep after 15 min idle; in-memory
 // sessions would be lost on every wake-up. PG sessions persist across restarts.
 const PgSession = connectPgSimple(session);
+const isProd = process.env.NODE_ENV === "production";
+
 app.use(
   session({
     store: new PgSession({
       pool,
       tableName: "user_sessions",
-      // creates the table on first run if missing
       createTableIfMissing: true,
     }),
     name: "ts.sid",
     secret: process.env.SESSION_SECRET ?? "thinking-spree-dev-secret",
     resave: false,
     saveUninitialized: false,
+    proxy: true,  // honor X-Forwarded-Proto from Render's load balancer
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProd,
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
 );
